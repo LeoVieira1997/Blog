@@ -1,3 +1,7 @@
+#login, #signup{
+  margin-top: 8px;
+}
+
 .container-fluid {
     padding-top: 70px;
     padding-bottom: 70px;
@@ -33,4 +37,28 @@
 	margin-top: 25px;
 	font-size: 12px;
   color: #fff;
+}
+
+
+/* ----------------------   Newsletter   ---------------- */
+
+.form-signin {
+  width: 100%;
+  max-width: 330px;
+  padding: 15px;
+  margin: auto;
+  text-align: center;
+}
+.form-signin .checkbox {
+  font-weight: 400;
+}
+.form-signin .form-control {
+  position: relative;
+  box-sizing: border-box;
+  height: auto;
+  padding: 10px;
+  font-size: 16px;
+}
+.form-signin .form-control:focus {
+  z-index: 2;
 }
