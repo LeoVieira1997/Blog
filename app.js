@@ -17,22 +17,79 @@ const contactContent = "You can send me an email at leonardov9.lv@gmail.com";
 
 const app = express();
 
-app.set('view engine', 'ejs');
-
 app.use(bodyParser.urlencoded({extended: true}));
+app.set('view engine', 'ejs');
 app.use(express.static("public"));
+app.use(session({
+  secret: process.env.SECRET,
+  resave: false,
+  saveUninitialized: false
+}));
+app.use(passport.initialize());
+app.use(passport.session());
 
 // Creating Schema and defining database
 
 mongoose.connect("mongodb://localhost:27017/blogDB", {useNewUrlParser: true});
+mongoose.set("useCreateIndex", true);
 
+// Schemas
 const postSchema = { title: String, body: String };
 
-const Post = mongoose.model("Post", postSchema);
+const userSchema = new mongoose.Schema({
+  user: String,
+  password: String,
+  googleId:String
+});
 
+const newsletterSchema = new mongoose.Schema({
+  firstName: String,
+  lastName:String,
+  email: String
+});
 
 //
 //
+
+userSchema.plugin(passportLocalMongoose);
+userSchema.plugin(findOrCreate);
+
+// Models
+
+const Post = new mongoose.model("Post", postSchema);
+
+const User = new mongoose.model("User", userSchema);
+
+const NewsletterSignup = new mongoose.model("NewsletterSignup", newsletterSchema);
+
+//
+//
+
+passport.use(User.createStrategy());
+
+passport.serializeUser(function(user, done) {
+  done(null, user.id);
+});
+
+passport.deserializeUser(function(id, done) {
+  User.findById(id, function(err, user) {
+    done(err, user);
+  });
+});
+
+passport.use(new GoogleStrategy({
+    clientID: process.env.CLIENT_ID,
+    clientSecret: process.env.CLIENT_SECRET,
+    callbackURL: "http://localhost:3000/auth/google/about",
+    userProfileURL: "https://www.googleapis.com/oauth2/v3/userinfo"
+  },
+  function(accessToken, refreshToken, profile, cb) {
+    console.log(profile);
+    User.findOrCreate({ googleId: profile.id }, function (err, user) {
+      return cb(err, user);
+    });
+  }
+));
 
 app.get("/", function(req, res){
   Post.find({}, function(err, posts){
@@ -77,8 +134,30 @@ app.get("/posts/:postId", function(req, res){
   });
 });
 
-app.post("/newsletter", function(req, res){
+app.get("/auth/google",
+  passport.authenticate("google", { scope: ["profile"] })
+);
 
+app.get("/auth/google/about",
+  passport.authenticate("google", { failureRedirect: "/login" }),
+  function(req, res) {
+    // Successful authentication, redirect home.
+    res.redirect("/");
+});
+
+app.post("/newsletter-signup", function(req, res){
+  let newsUser = new NewsletterSignup({
+    firstName: req.body.firstName,
+    lastName: req.body.lastName,
+    email: req.body.email
+  });
+  newsUser.save(function(err){
+    if(err){
+      console.log(err);
+    } else {
+      res.redirect("/");
+    }
+  });
 });
 
 app.post("/compose", function(req, res){
